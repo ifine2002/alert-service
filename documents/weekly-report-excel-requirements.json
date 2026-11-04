@@ -1,0 +1,142 @@
+{
+  "description": "Sheet và tên ô bắt buộc cho Word 2001, Phụ lục I 2002, Phụ lục II 2003; đối chiếu reader và file mẫu trong documents.",
+  "yearRule": "yyyy = năm của ngày kết thúc tuần; yyyy-1 = năm trước đó",
+  "sheets": [
+    {
+      "definitionId": 1010,
+      "sheetName": "Bất cập DV",
+      "sourceFilePrefix": "Phu luc - TH BCDV_PAGY_2026.xlsx",
+      "outputs": [2001, 2003],
+      "readers": ["WordProductIssueReader", "AppendixExcelOutputGenerator.copyFilteredAppendixTwo"],
+      "headers": ["Ngày phát hiện", "Tiến độ", "Nội dung", "Kết quả", "Dịch vụ"],
+      "notes": "Word lấy dòng đầu tiên trong tuần; Giải pháp lấy Kết quả. Phụ lục II còn lọc Dịch vụ. Tên bất cập/lỗi và các cột chi tiết xem danh sách cột sao chép bên dưới tài liệu."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "TH",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordSystemIncidentReader.read", "WordSystemIncidentReader.readStation", "WordSystemIncidentReader.readCable"],
+      "headers": ["Tổng lỗi phát sinh", "So sánh lỗi trạm", "So sánh Sự cố đứt cáp, cháy cáp trục, cáp nhánh", "Số lượng", "PA", "TB ảnh hưởng", "Tỷ lệ tăng giảm"],
+      "notes": "Danh sách gồm cả nhãn bảng/dòng cần đọc. Hai header tuần có thể là Tuần này/Tuần trước hoặc khoảng ngày thực tế; chênh lệch có các tên thay thế. Reader kiểm tra cấu trúc và đúng kỳ."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "Lũy kế lỗi phát sinh năm {yyyy}",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2001, 2002],
+      "readers": ["WordIncidentChartReader.read", "AppendixExcelOutputGenerator.copyFilteredByOwner"],
+      "headers": ["Năm", "Tháng", "Ngày", "Chủ dịch vụ"],
+      "sampleMissingHeaders": ["Chủ dịch vụ"],
+      "notes": "Biểu đồ 8 tuần và phụ lục I lọc Chủ dịch vụ = VTT. Cột PA bổ sung reader tìm theo tên Số lượng phản ảnh; mẫu dùng Số lượng phản ánh, xem ghi chú chênh lệch trong tài liệu."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "LPS năm {yyyy-1}",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordIncidentChartReader.read"],
+      "headers": ["Tháng", "Ngày", "Chủ dịch vụ"],
+      "notes": "Reader chỉ cần khi cửa sổ 8 tuần đi qua năm trước. Không bắt buộc cột Năm; giá trị Tháng cần dạng Tháng M.yyyy. Metadata mặc định yêu cầu sheet này cả năm để đủ bộ nguồn."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "Lũy kế trạm năm {yyyy}",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2001, 2002],
+      "readers": ["WordIncidentChartReader.readStation", "WordIncidentChartReader.readCable", "WordIncidentChartReader.readTopCableProvinces", "AppendixExcelOutputGenerator.copyAllDataRows"],
+      "headers": ["Năm", "Tháng", "Ngày", "Tổng PA", "Tổng ảnh hưởng", "Nguyên nhân cấp 1", "Tỉnh"],
+      "notes": "Header hai tầng. Nguyên nhân cấp 1 dùng lọc Cháy cáp/Đứt cáp; Tỉnh dùng top tỉnh. Các cột chi tiết phụ lục I có trong danh mục cột sao chép."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "Tổng trạm {yyyy-1}",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordIncidentChartReader.readStation", "WordIncidentChartReader.readCable", "WordIncidentChartReader.readTopCableProvinces"],
+      "headers": ["Năm", "Tháng", "Ngày", "Tổng PA", "Tổng ảnh hưởng", "Nguyên nhân cấp 1", "Tỉnh"],
+      "notes": "Dùng khi 8 tuần hoặc tuần báo cáo vắt năm. Metadata mặc định yêu cầu cả năm để đủ bộ nguồn."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "LPS tuần",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2002],
+      "readers": ["AppendixExcelOutputGenerator.copyFilteredByOwner"],
+      "headers": ["Chủ dịch vụ"],
+      "notes": "Header bắt buộc để tìm hàng tiêu đề và lọc VTT. Cột STT ở output được tự đánh lại. Cần các cột chi tiết của template nếu muốn xuất đủ dữ liệu."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "Trạm tuần",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2002],
+      "readers": ["AppendixExcelOutputGenerator.copyAllDataRows"],
+      "headers": ["Năm", "Tháng", "Ngày", "Mã trạm", "Tỉnh"],
+      "notes": "Các tên nhận diện cấu trúc nguồn. Reader ánh xạ các cột còn lại theo toàn bộ tên header của template; xem danh mục chi tiết."
+    },
+    {
+      "definitionId": 1102,
+      "sheetName": "Đứt cáp cháy cáp",
+      "sourceFilePrefix": "T36. Bao cao tuan 01.09 -07.09.xlsx",
+      "outputs": [2002],
+      "readers": ["AppendixExcelOutputGenerator.copyAllDataRows"],
+      "headers": ["Năm", "Tháng", "Ngày", "Mã trạm", "Tỉnh"],
+      "notes": "Các tên nhận diện cấu trúc nguồn. Không yêu cầu STT ở nguồn vì output tự đánh lại. Xem các cột chi tiết phụ lục I."
+    },
+    {
+      "definitionId": 1104,
+      "sheetName": "PL02-So lieu TN&XL",
+      "sourceFilePrefix": "PHU_LUC_BAO_CAO_TUAN_DICH_VU_DI_DONG_07092026.xlsm",
+      "outputs": [2001],
+      "readers": ["WordMobileFeedbackReader"],
+      "headers": ["STT", "Dịch vụ", "Tăng giảm", "Tỷ lệ", "Phản ánh báo hỏng dịch vụ"],
+      "notes": "Header TB tuần (...) chứa ngày động; reader tự kiểm tra tuần. File mẫu là xlsm; allowed_extension của definition cần phù hợp định dạng file thực tế hoặc lưu lại mẫu thành xlsx."
+    },
+    {
+      "definitionId": 1106,
+      "sheetName": "N.Xet tuan",
+      "sourceFilePrefix": "PL CDBR TUAN 01.09-07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordFixedFeedbackReader"],
+      "headers": ["Cùng kỳ tuần trước", "HTDV + SỰ CỐ tiếp nhận chuyển BO", "HTDV + SỰ CỐ tiếp nhận chuyển KT", "SỰ CỐ tiếp nhận chuyển KT", "TLPA/10K", "FTTH GPON", "THS"],
+      "notes": "Đây là tên chuẩn của mẫu; reader còn chấp nhận một số biến thể bỏ tiếp nhận, khoảng trắng, THS/Truyền hình số. Nhóm ngày tuần hiện tại/trước được reader kiểm tra riêng."
+    },
+    {
+      "definitionId": 1106,
+      "sheetName": "TH",
+      "sourceFilePrefix": "PL CDBR TUAN 01.09-07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordFixedFeedbackReader.kpi"],
+      "headers": ["Chỉ tiêu", "KPI", "FTTH_Gpon", "Truyền hình số"],
+      "notes": "FTTH_Gpon là tên literal ở mẫu; reader chuẩn hóa _ thành khoảng trắng khi tìm dịch vụ."
+    },
+    {
+      "definitionId": 1107,
+      "sheetName": "Tỷ lệ PA tuần",
+      "sourceFilePrefix": "PL_CLM ",
+      "outputs": [2001],
+      "readers": ["WordNetworkQualityReader"],
+      "headers": ["Tỷ lệ chung", "Chỉ tiêu thoại", "Chỉ tiêu Data", "PA", "Thuê bao", "KQ", "KPIs", "Đánh giá", "Nguồn tiếp nhận", "TOP 5 Tỉnh Thoại tăng cao nhất Tuần", "TOP 5 Tỉnh Data tăng cao nhất Tuần", "Tỉnh", "Tuần hiện tại"],
+      "notes": "Nhóm header Tuần Từ ... đến ... là ngày động. Cùng tên PA/Thuê bao/KQ lặp theo tuần là hợp lệ; reader xác định nhóm cột bằng kỳ báo cáo."
+    },
+    {
+      "definitionId": 1112,
+      "sheetName": "NDPA",
+      "sourceFilePrefix": "PL TV360 TUAN 01.09-07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordTv360FeedbackReader"],
+      "headers": ["STT", "Nội dung phản ánh", "TB ngày", "Tỷ trọng ngày", "DỊCH VỤ TV360"],
+      "notes": "Khoảng ngày tuần hiện tại/trước là header động và phải gộp nhóm cột. Reader kiểm tra quan hệ này."
+    },
+    {
+      "definitionId": 1112,
+      "sheetName": "NNLOI",
+      "sourceFilePrefix": "PL TV360 TUAN 01.09-07.09.xlsx",
+      "outputs": [2001],
+      "readers": ["WordTv360FeedbackReader"],
+      "headers": ["STT", "Nguyên nhân lỗi", "TB ngày", "Tỷ trọng ngày", "DỊCH VỤ TV360", "Hỗ trợ khách hàng", "Lỗi phía khách hàng"],
+      "notes": "Hai nhóm nguyên nhân là nhãn dòng dữ liệu cần đọc. Khoảng ngày tuần do reader kiểm tra riêng."
+    }
+  ]
+}

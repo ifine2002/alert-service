@@ -1,0 +1,432 @@
+CREATE TABLE rpt_definitions
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    name VARCHAR(255) NOT NULL
+        COMMENT 'Ten hien thi',
+
+    direction TINYINT UNSIGNED NOT NULL DEFAULT 0
+        COMMENT '0: input, 1: output',
+
+    node_type TINYINT UNSIGNED NOT NULL DEFAULT 0
+        COMMENT '0: group - nhom bao cao; 1: file input/output thuc te',
+
+    source_mode TINYINT UNSIGNED NOT NULL DEFAULT 0
+        COMMENT '0: import - user upload; 1: generate - he thong sinh',
+
+    file_kind TINYINT UNSIGNED NOT NULL DEFAULT 0
+        COMMENT '0: NONE, 1: WORD, 2: EXCEL',
+
+    allowed_extension VARCHAR(20) NOT NULL
+        COMMENT 'Extension cho phep, vi du docx hoac xlsx',
+
+    template_relative_path VARCHAR(1000) NULL
+        COMMENT 'Duong dan tuong doi toi template; chu yeu dung cho output GENERATED',
+
+    sort_order INT NOT NULL DEFAULT 0
+        COMMENT 'Thu tu hien thi',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Master dinh nghia nhom bao cao, file input và file output';
+
+CREATE TABLE rpt_excel_sheet_defs
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    definition_id INT UNSIGNED NOT NULL
+        COMMENT 'ID cua dinh nghia bao cao tham chieu den bang rpt_definitions',
+
+    sheet_name VARCHAR(255) NOT NULL
+        COMMENT 'Ten sheet thuc te trong Excel',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_excel_sheet_name
+        (definition_id, sheet_name)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Dinh nghia cac sheet Excel dung cho validate hoac lam nguon generate output';
+  
+CREATE TABLE rpt_excel_header_defs (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    sheet_def_id  INT       NOT NULL COMMENT 'ID cua header can validate tham chieu den bang rpt_excel_sheet_defs',
+    header_name   VARCHAR(500) NOT NULL COMMENT 'Ten header bat buoc phai co tai vi tri (row_index, column_index)',
+    row_index     INT          NOT NULL COMMENT 'Dong chua header (0-based: 0 = dong dau tien)',
+    column_index  INT          NOT NULL COMMENT 'Cot chua header (0-based: 0 = cot A, 1 = cot B,...)',
+    status        INT          NOT NULL DEFAULT 1 COMMENT '1: bat buoc validate, 0: bo qua',
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by    VARCHAR(100) NOT NULL DEFAULT ''
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  COMMENT='Dinh nghia header bat buoc tai vi tri cu the (row, col) trong moi sheet Excel';
+
+
+CREATE TABLE rpt_definition_links
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    parent_definition_id INT UNSIGNED NOT NULL
+        COMMENT 'Definition nhom cha tham chieu den bang rpt_definitions',
+
+    child_definition_id INT UNSIGNED NOT NULL
+        COMMENT 'Definition file/thanh phan con tham chieu den bang rpt_definitions',
+
+    sort_order INT NOT NULL DEFAULT 0
+        COMMENT 'Thu tu hien thi',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_definition_link
+        (parent_definition_id, child_definition_id)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Quan he nhom bao cao cha và cac file/thanh phan con';
+
+
+CREATE TABLE rpt_section_defs
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    source_definition_id INT UNSIGNED NOT NULL
+        COMMENT 'Definition cua file Word nguon tham chieu den bang rpt_definitions',
+
+    section_name VARCHAR(255) NOT NULL
+        COMMENT 'Ten section nghiep vu',
+
+    extract_mode TINYINT NOT NULL DEFAULT 0
+        COMMENT '
+        0: TEXT_RANGE - lay cac node tu start_marker den end_marker,
+        1: WHOLE_DOCUMENT - lay toan bo document,
+        2: PARAGRAPH_MARKER - lay dung paragraph chua start_marker,
+        3: NEXT_PARAGRAPHS - lay N paragraph sau paragraph chua start_marker,
+        4: NEXT_LIST_ITEMS - lay N list item sau paragraph chua start_marker
+        ',
+
+    start_marker VARCHAR(1000) NULL
+        COMMENT 'Text dung de xac dinh paragraph moc bat dau',
+
+    end_marker VARCHAR(1000) NULL
+        COMMENT '
+        TEXT_RANGE: marker ket thuc range;
+        NEXT_PARAGRAPHS/NEXT_LIST_ITEMS: marker dung de gioi han tim kiem;
+        NULL = khong gioi han
+        ',
+
+    item_count INT UNSIGNED NULL
+        COMMENT '
+        So luong paragraph/list item can lay.
+        Chi dung cho NEXT_PARAGRAPHS va NEXT_LIST_ITEMS
+        ',
+
+    include_start TINYINT NOT NULL DEFAULT 1
+        COMMENT '
+        Chi dung cho TEXT_RANGE.
+        1: lay ca node chua start_marker; 0: khong lay
+        ',
+
+    include_end TINYINT NOT NULL DEFAULT 0
+        COMMENT '
+        Chi dung cho TEXT_RANGE.
+        1: lay ca node chua end_marker; 0: khong lay
+        ',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_section_definition_name
+        (source_definition_id, section_name)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Dinh nghia cach xac dinh section can lay truc tiep tu file Word nguon';
+
+
+CREATE TABLE rpt_output_block_defs
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    output_definition_id INT UNSIGNED NOT NULL
+        COMMENT 'Definition cua file output chua block nay tham chieu den bang rpt_definitions',
+
+    block_code VARCHAR(100) NOT NULL
+        COMMENT 'Mã block duy nhất trong output, ví dụ INCIDENT, SOCIAL, INCIDENT_WEEK',
+
+    block_name VARCHAR(255) NOT NULL
+        COMMENT 'Ten nghiep vu cua block',
+
+    target_name VARCHAR(255) NULL
+        COMMENT 'Vi tri dich trong output: bookmark neu Word, ten sheet neu Excel',
+
+    render_type TINYINT NOT NULL DEFAULT 0
+        COMMENT '0: COPY_SECTION, 1: CUSTOM_HANDLER',
+
+    sort_order INT NOT NULL DEFAULT 0
+        COMMENT 'Thu tu xu ly block trong output',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_output_block_code
+        (output_definition_id, block_code),
+
+    UNIQUE KEY uk_rpt_output_block_target
+        (output_definition_id, target_name)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Dinh nghia cac block/section/sheet cau thanh file output';
+
+
+CREATE TABLE rpt_output_source_maps
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    output_block_id INT UNSIGNED NOT NULL
+        COMMENT 'Block output su dung source tham chieu den bang rpt_output_block_defs',
+
+    source_definition_id INT UNSIGNED NOT NULL
+        COMMENT 'Definition file input nguon tham chieu den bang rpt_definitions',
+
+    source_role TINYINT NOT NULL
+		COMMENT '0: TEXT, 1: DATA, 2: CHART, 3:CHART_ACCUMULATED',
+
+    source_sheet_name VARCHAR(255) NULL
+		COMMENT 'Tên sheet Excel nguồn cần đọc; NULL nếu handler sử dụng toàn bộ file hoặc source là Word',
+
+    source_section_def_id INT UNSIGNED NULL
+        COMMENT 'Section Word nguon neu block copy/đọc một section cu the tham chieu den bang rpt_section_defs',
+
+    sort_order INT NOT NULL DEFAULT 0
+        COMMENT 'Thu tu source neu block co nhieu source',
+
+    status TINYINT NOT NULL DEFAULT 1
+        COMMENT '1: dang su dung; 0: khong su dung',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_output_source_sort (output_block_id, sort_order)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Mapping moi block output toi file, sheet Excel hoặc section Word nguon';
+
+ 
+CREATE TABLE rpt_output_source_files
+(
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    output_file_id INT UNSIGNED NOT NULL
+        COMMENT 'rpt_files.id cua output da generate',
+
+    source_file_id INT UNSIGNED NOT NULL
+        COMMENT 'rpt_files.id cua input version da duoc su dung',
+
+    output_block_id INT UNSIGNED NULL
+        COMMENT 'Block output su dung source nay mapping den bang rpt_output_block_defs',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_output_source_file
+        (output_file_id, output_block_id, source_file_id),
+
+    KEY idx_output_source_file_source (source_file_id),
+    KEY idx_output_source_file_output (output_file_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Output nay duoc tao tu version cac file input nao';
+
+
+CREATE TABLE rpt_instances
+(
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    definition_id INT UNSIGNED NOT NULL
+        COMMENT 'ID cua bao cao/du lieu vao tham chieu den bang rpt_definitions',
+
+	current_file_id BIGINT UNSIGNED NULL
+		COMMENT 'File version hien tai dang duoc su dung mapping den bang rpt_files',
+
+    week_start_date DATE NOT NULL
+        COMMENT 'Ngay Thu Ba bat dau tuan bao cao; ngay ket thuc = +6 ngay',
+
+    status TINYINT NOT NULL DEFAULT 0
+        COMMENT '0: EMPTY, 1: PROCESSING, 2: COMPLETED, 3: REJECTED, 4: ERROR, 5: GENERATING, 6: STALE',
+
+    rejected_reason TEXT NULL COMMENT 'Ly do tu choi hien tai',
+
+    rejected_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tu choi',
+
+    rejected_at DATETIME NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+	updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		ON UPDATE CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian cap nhat cuoi',
+
+    updated_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi cap nhat cuoi',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_instance_definition_week
+        (definition_id, week_start_date),
+
+    KEY idx_rpt_instance_current_file (current_file_id)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Instance cua definition theo tuan, duoc lazy-create khi có thao tac thuc te';
+
+
+CREATE TABLE rpt_files
+(
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    report_instance_id INT UNSIGNED NOT NULL
+        COMMENT 'Instance so huu file tham chieu den bang rpt_instances',
+
+	version_no INT UNSIGNED NOT NULL
+        COMMENT 'Lan import thanh cong: 1 = import lan dau, 2 tro len = re-import',
+
+    original_filename VARCHAR(500) NOT NULL
+        COMMENT 'Ten file hien thi/download; voi output la ten file duoc he thong sinh',
+
+    storage_object_name VARCHAR(1000) NOT NULL
+        COMMENT 'MinIO object name day du trong bucket, bao gom ten object vat ly',
+
+    file_size BIGINT UNSIGNED NOT NULL DEFAULT 0
+        COMMENT 'Dung lượng byte',
+
+    sha256 CHAR(64)
+        CHARACTER SET ascii
+        COLLATE ascii_general_ci
+        NOT NULL
+        COMMENT 'SHA-256 cua noi dung file version',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian tao',
+
+    created_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tao',
+
+	updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		ON UPDATE CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian cap nhat cuoi',
+
+    updated_by VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi cap nhat cuoi',
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uk_rpt_file_instance_version
+        (report_instance_id, version_no),
+
+    KEY idx_rpt_file_instance_created
+        (report_instance_id, created_at)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Lich su cac version file cua report instance; moi version la bat bien';
+
+
+CREATE TABLE rpt_audit_logs
+(
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+    week_start_date DATE NULL
+        COMMENT 'Tuan lien quan',
+
+    report_instance_id INT UNSIGNED NULL
+        COMMENT 'Instance lien quan tham chieu den bang rpt_instances',
+
+	file_id BIGINT UNSIGNED NULL
+        COMMENT 'ID cua file mapping den bang rpt_files',
+
+    reason TEXT NULL
+		COMMENT 'Ly do cua thao tac, chu yeu dung cho REJECT',
+
+    action TINYINT NOT NULL DEFAULT 0
+        COMMENT '0: IMPORT, 1: REJECT, 2: DELETE',
+
+    actor VARCHAR(100) NOT NULL DEFAULT ''
+        COMMENT 'Nguoi tac dong',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        COMMENT 'Thoi gian tao',
+
+    PRIMARY KEY (id)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Audit lich su thao tac import, reject, delete';

@@ -1,0 +1,118 @@
+spring:
+  application:
+    name: alert-service
+
+  datasource:
+    # URL kết nối tới MySQL
+    url: jdbc:mysql://localhost:3306/cos_dashboard?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Ho_Chi_Minh&rewriteBatchedStatements=true
+    username: root
+    password: password # Người dùng có thể đổi tùy cấu hình máy tính
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # Tự động cập nhật bảng trong CSDL (Không nên dùng update trên production, nhưng dùng cho dev thì tiện)
+      ddl-auto: update
+    # In ra log các câu SQL Hibernate sinh ra (TẮT khi import lượng lớn để tránh chậm, bật lại khi debug)
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false  # Tắt cùng với show-sql
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        # Đảm bảo múi giờ DB và JVM nhất quán
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+          # Bật Hibernate JDBC Batch Insert/Update (gom N câu INSERT thành 1 batch)
+          batch_size: 500
+        # Bật order insert/update để Hibernate có thể gom các entity cùng loại lại
+        order_inserts: true
+        order_updates: true
+
+  # ============================================================
+  # CẤU HÌNH GỬI EMAIL QUA SMTP
+  # Thay đổi host/port/username/password theo mail server thực tế
+  # ============================================================
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com       # Đổi thành địa chỉ email thực tế
+    password: your-app-password          # Dùng App Password (Gmail) hoặc mật khẩu SMTP
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000        # Timeout kết nối SMTP (ms)
+          timeout: 5000                  # Timeout đọc dữ liệu (ms)
+          writetimeout: 5000             # Timeout ghi dữ liệu (ms)
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB      # Kích thước file tối đa (áp dụng toàn bộ ứng dụng, bao gồm báo cáo tuần)
+      max-request-size: 20MB   # Kích thước request tối đa
+
+server:
+  port: 8080 # Cổng mặc định
+  # Tăng timeout để hỗ trợ import file lớn (đơn vị: ms)
+  connection-timeout: 300000  # 5 phút
+
+# ============================================================
+# CẤU HÌNH TÙY CHỈNH CỦA ỨNG DỤNG
+# ============================================================
+app:
+  mail:
+    # Tên hiển thị của người gửi trong email (không phải địa chỉ email)
+    from-name: "vCOC - Hệ thống Điều hành Trung tâm"
+  scheduler:
+    zone: "Asia/Ho_Chi_Minh"
+    shift1:
+      cron: "0 0 8 * * *"
+    shift2:
+      cron: "0 30 13 * * *"
+    shift3:
+      cron: "0 30 17 * * *"
+  traffic:
+    import:
+      # Tỷ lệ ảnh hưởng mặc định khi tạo mới sự kiện tự động từ file Excel (đơn vị: %)
+      # Ví dụ: 0.00 = không ảnh hưởng, 5.00 = ảnh hưởng 5%
+      default-event-impact-rate: 0.00
+  report:
+    # Storage root cho file báo cáo tuần (ghi đè bằng biến môi trường REPORT_STORAGE_ROOT)
+    # temp, input, output đều nằm dưới cùng filesystem để hỗ trợ rename/move sau validate
+    storage-root: ${REPORT_STORAGE_ROOT:/u01/os_csom/cos/exports}
+    temp-directory: temp      # Thư mục lưu file tạm trong lúc validate
+    input-directory: input    # Thư mục lưu file input sau khi import thành công
+    output-directory: output  # Thư mục lưu file output sau khi generate thành công (Phase 5+)
+
+# Chọn nơi lưu file báo cáo:
+# - minio: dùng ReportFileServiceImpl
+# - system: dùng SystemReportFileServiceImpl
+report:
+  export:
+    storage-type: ${REPORT_STORAGE_TYPE:minio}
+    base-path: ${REPORT_EXPORT_BASE_PATH:/u01/os_csom/cos/exports}
+
+# ============================================================
+# CẤU HÌNH MINIO OBJECT STORAGE
+# Prefix: vcx.minio  →  đọc bởi MinioProperties.java
+# ============================================================
+vcx:
+  minio:
+    # URL kết nối tới MinIO server
+    endpoint: http://localhost:9000
+    # Access key (tài khoản đăng nhập MinIO)
+    access-key: minio-app-key-001
+    # Secret key (mật khẩu MinIO)
+    secret-key: minio-app-secret-001
+    # Bucket mặc định dùng để lưu báo cáo
+    bucket: report
+    # true: tự động tạo bucket khi app khởi động nếu chưa tồn tại
+    auto-create-bucket: true
+    # Thời gian hết hạn presigned URL dùng để TẢI XUỐNG (GET) - mặc định 10 phút
+    presigned-get-expiry: 10m
+    # Thời gian hết hạn presigned URL dùng để TẢI LÊN (PUT) - mặc định 15 phút
+    presigned-put-expiry: 15m
