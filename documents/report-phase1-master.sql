@@ -133,7 +133,7 @@ ON DUPLICATE KEY UPDATE output_block_id=VALUES(output_block_id), source_definiti
 
 -- -------------------------------------------------------
 -- 4. Validate 2 file Excel input tao Phu luc 1 va Phu luc 2
--- Header duoc tim theo nguyen ten o bat ky vi tri nao trong sheet.
+-- Chi validate sheet bat buoc ton tai trong workbook.
 -- Bo cau hinh cu; chay report-weekly-excel-validation-config.sql sau cac phase de dong bo danh muc hien tai.
 -- -------------------------------------------------------
 INSERT INTO rpt_excel_sheet_defs
@@ -150,34 +150,6 @@ VALUES
 ON DUPLICATE KEY UPDATE
   definition_id=VALUES(definition_id), sheet_name=VALUES(sheet_name),
   sort_order=VALUES(sort_order), status=VALUES(status);
-
-INSERT INTO rpt_excel_header_defs
-  (id, sheet_def_id, header_name, status, created_by)
-VALUES
-  (7101,7001,N'STT',1,'system'),
-  (7102,7001,N'Dịch vụ (Cố định, Di động, SME, Giải pháp, Tài chính ngân hàng, Đa dịch vụ, Hệ thống CNTT nội bộ)',1,'system'),
-  (7103,7001,N'Tên lỗi',1,'system'),
-  (7111,7002,N'STT',1,'system'),
-  (7112,7002,N'Dịch vụ (Cố định, Di động, SME, Giải pháp, Tài chính ngân hàng, Đa dịch vụ, Hệ thống CNTT nội bộ)',1,'system'),
-  (7113,7002,N'Tên lỗi',1,'system'),
-  -- Loi tram tuan: header chia tren hai dong Excel 1-2
-  (7121,7003,N'Tháng ',1,'system'),
-  (7122,7003,N'Mã trạm',1,'system'),
-  (7123,7003,N'Kết quả
-OK/NOK',1,'system'),
-  -- Dut cap chay cap tuan: header chia tren hai dong Excel 1-2
-  (7131,7004,N'Năm',1,'system'),
-  (7132,7004,N'Mã trạm',1,'system'),
-  (7133,7004,N'Kết quả',1,'system'),
-  (7141,7005,N'Khu vực',1,'system'),
-  (7142,7005,N'Mã trạm',1,'system'),
-  (7143,7005,N'Hiện tượng lỗi',1,'system'),
-  (7151,7006,N'STT',1,'system'),
-  (7152,7006,N'Dịch vụ',1,'system'),
-  (7153,7006,N'Ngày phát hiện',1,'system')
-ON DUPLICATE KEY UPDATE
-  sheet_def_id=VALUES(sheet_def_id), header_name=VALUES(header_name),
-  status=VALUES(status);
 
 COMMIT;
 

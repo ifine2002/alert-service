@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
  * Định nghĩa các sheet Excel thuộc một definition.
  * Dùng để validate file Excel khi user import:
  * - Kiểm tra sheet có tồn tại không.
- * - Tên header bắt buộc lưu trong rpt_excel_header_defs, không phụ thuộc tọa độ.
  */
 @Entity
 @Table(name = "rpt_excel_sheet_defs")

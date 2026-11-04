@@ -11,7 +11,7 @@ import java.time.LocalDate;
 public interface ReportValidationService {
 
     /**
-     * Validate toàn bộ: extension, mở được và (nếu Excel) đủ sheet/header bắt buộc theo tên.
+     * Validate toàn bộ: extension, mở được và (nếu Excel) tồn tại đủ sheet bắt buộc theo tên.
      * Ném ReportFileValidationException với message rõ ràng nếu không hợp lệ.
      *
      * @param multipartFile   file từ frontend
