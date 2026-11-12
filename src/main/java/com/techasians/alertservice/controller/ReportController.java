@@ -7,6 +7,7 @@ import com.techasians.alertservice.dto.ReportDocumentSummaryResponse;
 import com.techasians.alertservice.dto.ReportDownloadDto;
 import com.techasians.alertservice.dto.ReportInputNodeResponse;
 import com.techasians.alertservice.dto.ReportInputSearchRequest;
+import com.techasians.alertservice.dto.ReportImportResult;
 import com.techasians.alertservice.dto.ReportOutputResponse;
 import com.techasians.alertservice.dto.ReportFileVersionResponse;
 import com.techasians.alertservice.dto.ReportPreviewDto;
@@ -143,15 +144,18 @@ public class ReportController {
      * - file: file upload (.docx hoặc .xlsx)
      */
     @PostMapping(value = "/inputs/{definitionId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<Void> importFile(
+    public ResponseEntity<ApiResponse<ReportImportResult>> importFile(
             @PathVariable Long definitionId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStartDate,
             @RequestParam String actor,
             @RequestParam("file") MultipartFile file) {
         long requestStart = System.nanoTime();
         try {
-            reportImportService.importFile(definitionId, weekStartDate, file, actor);
-            return ApiResponse.success("Import báo cáo thành công", null);
+            ReportImportResult result = reportImportService.importFile(definitionId, weekStartDate, file, actor);
+            if (result.getErrorFile() != null) {
+                return ResponseEntity.ok(ApiResponse.success("Import có lỗi, kiểm tra file", result));
+            }
+            return ResponseEntity.ok(ApiResponse.success("Import báo cáo thành công", result));
         } finally {
             log.info("[import-api] HOÀN TẤT — definitionId={}, weekStartDate={}, apiTotalMs={}",
                     definitionId, weekStartDate, elapsed(requestStart));

@@ -1,5 +1,6 @@
 package com.techasians.alertservice.service;
 
+import com.techasians.alertservice.dto.ReportImportResult;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -25,8 +26,9 @@ public interface ReportImportService {
      * @param weekStartDate ngày Thứ Hai bắt đầu tuần
      * @param file          file upload từ frontend
      * @param actor         người thực hiện (tạm nhận từ request)
+     * @return kết quả import; errorFile chứa Excel cảnh báo nếu dữ liệu ngày của nguồn 1010 không hợp lệ
      */
-    void importFile(Long definitionId,
+    ReportImportResult importFile(Long definitionId,
                     LocalDate weekStartDate,
                     MultipartFile file,
                     String actor);

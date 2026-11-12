@@ -75,7 +75,8 @@ public class WordProductIssueReader {
         return result;
     }
 
-    private LocalDate readDate(Cell cell, DataFormatter formatter) {
+    /** Dùng chung khi import và sinh báo cáo để thống nhất định dạng ngày được chấp nhận. */
+    static LocalDate readDate(Cell cell, DataFormatter formatter) {
         if (cell == null) return null;
         String value = formatCellValue(cell, formatter).trim();
         if (value.isEmpty()) return null;
@@ -96,7 +97,7 @@ public class WordProductIssueReader {
     }
 
     /** POI 4.1.2 chưa có setUseCachedValuesForFormulaCells; chỉ đọc cache, không tính lại công thức. */
-    private String formatCellValue(Cell cell, DataFormatter formatter) {
+    static String formatCellValue(Cell cell, DataFormatter formatter) {
         if (cell == null) return "";
         if (cell.getCellType() != CellType.FORMULA) return formatter.formatCellValue(cell);
         switch (cell.getCachedFormulaResultType()) {

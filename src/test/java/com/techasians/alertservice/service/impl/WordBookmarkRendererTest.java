@@ -2,7 +2,14 @@ package com.techasians.alertservice.service.impl;
 
 import com.aspose.words.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import java.awt.Color;
+import java.awt.geom.Rectangle2D;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +18,42 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordBookmarkRendererTest {
+    @ParameterizedTest
+    @ValueSource(strings = {"BM_STATION_INCIDENT_CHART", "BM_CABLE_INCIDENT_CHART"})
+    void chartStaysCenteredInsidePageMarginsAfterSaveAndReload(String name) throws Exception {
+        Document document;
+        try (InputStream template = getClass().getResourceAsStream("/templates/weekly-vcx-word-template.docx")) {
+            document = new Document(template);
+        }
+        Double[][] values = new Double[8][3];
+        Arrays.setAll(values, index -> new Double[] {318.0, 5301.0, 143987.0});
+        WordTrendChartRenderer charts = new WordTrendChartRenderer();
+        byte[] image = name.equals("BM_CABLE_INCIDENT_CHART")
+                ? charts.renderCable(LocalDate.of(2026, 9, 1), values)
+                : charts.renderStation(LocalDate.of(2026, 9, 1), values);
+
+        new WordBookmarkRenderer().insertImage(document, name, image);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        document.save(output, SaveFormat.DOCX);
+        Document saved = new Document(new ByteArrayInputStream(output.toByteArray()));
+        Paragraph paragraph = (Paragraph) saved.getRange().getBookmarks().get(name)
+                .getBookmarkStart().getParentNode();
+        Shape shape = (Shape) paragraph.getChildNodes(NodeType.SHAPE, true).get(0);
+        PageSetup page = paragraph.getParentSection().getPageSetup();
+        LayoutCollector collector = new LayoutCollector(saved);
+        saved.updatePageLayout();
+        LayoutEnumerator layout = new LayoutEnumerator(saved);
+        layout.setCurrent(collector.getEntity(shape));
+        Rectangle2D bounds = layout.getRectangle();
+
+        assertTrue(bounds.getMinX() >= page.getLeftMargin() - 0.1, name);
+        assertTrue(bounds.getMaxX() <= page.getPageWidth() - page.getRightMargin() + 0.1, name);
+        assertEquals((page.getLeftMargin() + page.getPageWidth() - page.getRightMargin()) / 2,
+                bounds.getCenterX(), 0.1, name);
+        assertEquals(1700.0 / 600, shape.getWidth() / shape.getHeight(), 0.001);
+        assertArrayEquals(image, shape.getImageData().getImageBytes());
+    }
+
     @Test
     void inlineRunsKeepSourceColorsWithGrayTemplatePlaceholderAfterSaveAndReload() throws Exception {
         Document source = new Document();

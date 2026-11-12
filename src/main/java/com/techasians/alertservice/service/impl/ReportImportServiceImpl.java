@@ -1,5 +1,6 @@
 package com.techasians.alertservice.service.impl;
 
+import com.techasians.alertservice.dto.ReportImportResult;
 import com.techasians.alertservice.entity.RptDefinition;
 import com.techasians.alertservice.enums.RptDirection;
 import com.techasians.alertservice.enums.RptNodeType;
@@ -52,7 +53,7 @@ public class ReportImportServiceImpl implements ReportImportService {
     }
 
     @Override
-    public void importFile(Long definitionId,
+    public ReportImportResult importFile(Long definitionId,
                            LocalDate weekStartDate,
                            MultipartFile file,
                            String actor) {
@@ -65,12 +66,15 @@ public class ReportImportServiceImpl implements ReportImportService {
         validationService.validateWeekStartDate(weekStartDate);
         validationService.validateActor(actor);
         RptDefinition definition = loadAndValidateDefinition(definitionId);
-        validationService.validate(
+        byte[] errorFile = validationService.validate(
                 file,
                 definition.getAllowedExtension(),
                 definitionId,
                 weekStartDate
         );
+        if (errorFile != null) {
+            return new ReportImportResult().setErrorFile(errorFile);
+        }
         log.info("[importFile] Bước 1 - Validate xong: {}ms", elapsed(step1Start));
 
         // Bước 2: Prepare (tạo bản ghi instance/version trong DB)
@@ -112,6 +116,7 @@ public class ReportImportServiceImpl implements ReportImportService {
         log.info("[importFile] Bước 5 - Prepare và publish output xong: {}ms", elapsed(step5Start));
 
         log.info("[importFile] HOÀN TẤT — serviceTotalMs={}", elapsed(totalStart));
+        return new ReportImportResult();
     }
 
     /** Tính thời gian đã trôi qua từ mốc startNano, trả về millisecond. */

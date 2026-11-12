@@ -154,6 +154,13 @@ public class WordBookmarkRenderer {
         bookmark.setText("");
         DocumentBuilder builder = new DocumentBuilder(document);
         builder.moveToBookmark(name, true, true);
+        // Chart bookmarks use their own paragraph; list indents would shift a page-width image past the margin.
+        builder.getListFormat().removeNumbers();
+        ParagraphFormat format = builder.getParagraphFormat();
+        format.setLeftIndent(0);
+        format.setRightIndent(0);
+        format.setFirstLineIndent(0);
+        format.setAlignment(ParagraphAlignment.CENTER);
         Shape shape = builder.insertImage(image);
         PageSetup page = builder.getPageSetup();
         double available = page.getPageWidth() - page.getLeftMargin() - page.getRightMargin();
