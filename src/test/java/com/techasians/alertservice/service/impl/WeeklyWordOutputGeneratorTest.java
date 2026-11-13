@@ -5,6 +5,8 @@ import com.techasians.alertservice.entity.*;
 import com.techasians.alertservice.enums.*;
 import com.techasians.alertservice.service.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import java.awt.Color;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,13 +89,18 @@ class WeeklyWordOutputGeneratorTest {
         }
     }
 
-    @Test
-    void producesMissingDataDocumentWithoutDownloadingAbsentSources() throws Exception {
+    @ParameterizedTest
+    @CsvSource({
+            "2026-09-01, 01/09 - 07/09/2026, 2026",
+            "2026-12-28, 28/12 - 03/01/2027, 2027"
+    })
+    void producesMissingDataDocumentWithoutDownloadingAbsentSources(String weekStart, String expectedPeriod,
+                                                                     String expectedYear) throws Exception {
         ReportFileService files = mock(ReportFileService.class);
         RptOutputBlockDef definition = new RptOutputBlockDef().setId(8001L)
                 .setBlockCode("MOBILE").setTargetName("BM_MOBILE").setRenderType(RptRenderType.COPY_SECTION);
         RptOutputSourceMap mapping = new RptOutputSourceMap().setSourceDefinitionId(1103L);
-        LocalDate week = LocalDate.of(2026, 9, 1);
+        LocalDate week = LocalDate.parse(weekStart);
         WordGenerationSnapshot.Source source = new WordGenerationSnapshot.Source(mapping,
                 new RptSectionDef().setStartMarker("Tình hình tiếp nhận chung"), null, week);
         WordGenerationSnapshot snapshot = new WordGenerationSnapshot(week,
@@ -107,11 +114,16 @@ class WeeklyWordOutputGeneratorTest {
         try {
             Document output = new Document(outputPath.toString());
             assertTrue(output.getText().contains("Chưa có dữ liệu"));
-            assertTrue(output.getText().contains("01/09/2026 - 07/09/2026"));
-            for (String name : Arrays.asList("BM_REPORT_PERIOD_TITLE", "BM_REPORT_PERIOD_INTRO", "BM_REPORT_PERIOD_CLOSING")) {
+            assertTrue(output.getText().contains(expectedPeriod));
+            assertTrue(output.getText().contains("năm " + expectedYear));
+            assertFalse(output.getText().contains("[yyyy]"));
+            for (String name : Arrays.asList("BM_REPORT_PERIOD_TITLE", "BM_REPORT_PERIOD_INTRO",
+                    "BM_REPORT_PERIOD_CLOSING", "BM_REPORT_YEAR")) {
                 Bookmark period = output.getRange().getBookmarks().get(name);
-                assertEquals("01/09/2026 - 07/09/2026", period.getText());
-                boolean title = name.equals("BM_REPORT_PERIOD_TITLE");
+                assertNotNull(period, name);
+                boolean year = name.equals("BM_REPORT_YEAR");
+                assertEquals(year ? expectedYear : expectedPeriod, period.getText());
+                boolean emphasized = name.equals("BM_REPORT_PERIOD_TITLE") || year;
                 int runs = 0;
                 for (Node node = period.getBookmarkStart().getNextSibling(); node != period.getBookmarkEnd();
                      node = node.getNextSibling()) {
@@ -120,8 +132,8 @@ class WeeklyWordOutputGeneratorTest {
                     Font font = ((Run) node).getFont();
                     assertEquals(Color.BLACK, font.getColor(), name);
                     assertEquals(14, font.getSize(), name);
-                    assertEquals(title, font.getBold(), name);
-                    assertEquals(title ? Underline.SINGLE : Underline.NONE, font.getUnderline(), name);
+                    assertEquals(emphasized, font.getBold(), name);
+                    assertEquals(emphasized ? Underline.SINGLE : Underline.NONE, font.getUnderline(), name);
                     runs++;
                 }
                 assertTrue(runs > 0, name);

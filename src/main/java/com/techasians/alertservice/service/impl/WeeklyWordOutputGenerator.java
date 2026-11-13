@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.awt.Color;
 import java.io.InputStream;
 import java.nio.file.*;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
@@ -58,15 +59,20 @@ public class WeeklyWordOutputGenerator {
         try (InputStream template = new ClassPathResource(snapshot.getTemplatePath()).getInputStream();
              WordSourceDocuments sources = new WordSourceDocuments(files)) {
             Document document = new Document(template);
-            String period = snapshot.getWeekStartDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                    + " - " + snapshot.getWeekStartDate().plusDays(6).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            for (String name : Arrays.asList("BM_REPORT_PERIOD_TITLE", "BM_REPORT_PERIOD_INTRO", "BM_REPORT_PERIOD_CLOSING")) {
+            LocalDate endDate = snapshot.getWeekStartDate().plusDays(6);
+            String period = snapshot.getWeekStartDate().format(DateTimeFormatter.ofPattern("dd/MM"))
+                    + " - " + endDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            for (String name : Arrays.asList("BM_REPORT_PERIOD_TITLE", "BM_REPORT_PERIOD_INTRO",
+                    "BM_REPORT_PERIOD_CLOSING", "BM_REPORT_YEAR")) {
                 Bookmark bookmark = document.getRange().getBookmarks().get(name);
                 if (bookmark == null) throw new IllegalArgumentException("Template thiếu bookmark: " + name);
-                // Một số template đặt bookmark bao quanh cả câu, chỉ thay phần kỳ trong câu đó.
+                boolean year = "BM_REPORT_YEAR".equals(name);
+                String placeholder = year ? "[yyyy]" : "[DD/MM-DD/MM/YYYY]";
+                String value = year ? Integer.toString(endDate.getYear()) : period;
+                // Một số template đặt bookmark bao quanh cả câu, chỉ thay placeholder tương ứng.
                 String text = bookmark.getText();
-                if (text.contains("[DD/MM-DD/MM/YYYY]")) text = text.replace("[DD/MM-DD/MM/YYYY]", period);
-                else text = period;
+                if (text.contains(placeholder)) text = text.replace(placeholder, value);
+                else text = value;
                 renderer.replaceText(document, name, text);
                 // Màu xám chỉ dành cho placeholder; ngày tháng đầu ra dùng màu đen như báo cáo mẫu.
                 for (Node node = bookmark.getBookmarkStart().nextPreOrder(document);
@@ -175,6 +181,10 @@ public class WeeklyWordOutputGenerator {
             }
         }
         setContentFontSize(body);
+        NodeCollection paragraphs = body.getChildNodes(NodeType.PARAGRAPH, true);
+        for (int index = 0; index < paragraphs.getCount(); index++) {
+            ((Paragraph) paragraphs.get(index)).getParagraphFormat().setAlignment(ParagraphAlignment.JUSTIFY);
+        }
         List<Node> nodes = new ArrayList<>();
         for (Node node = body.getFirstChild(); node != null; node = node.getNextSibling()) nodes.add(node);
         if (nodes.isEmpty()) renderer.replaceText(target, block.getDefinition().getTargetName(), "Chưa có dữ liệu");
