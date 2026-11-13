@@ -30,8 +30,6 @@ public class AppendixExcelOutputGenerator implements ExcelOutputGenerator {
                     .withResolverStyle(ResolverStyle.STRICT);
     private static final long APPENDIX_ONE = 2002L;
     private static final long APPENDIX_TWO = 2003L;
-    private static final Set<String> ALLOWED_SERVICES = new HashSet<>(Arrays.asList(
-            "di động", "cố định", "sme", "viettel telecom"));
 
     private final RptDefinitionRepository definitionRepository;
     private final RptOutputBlockDefRepository blockRepository;
@@ -205,18 +203,15 @@ public class AppendixExcelOutputGenerator implements ExcelOutputGenerator {
         HeaderStructure sourceHeader = analyzeHeader(source, sourceHeaderRowIndex);
         Row header = source.getRow(sourceHeaderRowIndex);
         int dateColumn = findColumn(header, "Ngày phát hiện");
-        int serviceColumn = findColumn(header, "Dịch vụ");
         LocalDate weekEndDate = weekStartDate.plusDays(6);
         TemplateWriteContext context = prepareTemplateWriteContext(sourceHeader, target);
         DataFormatter formatter = new DataFormatter(Locale.forLanguageTag("vi-VN"));
 
         copyRows(source, target, targetWorkbook, context, sourceHeader.dataStartRowIndex, row -> {
             LocalDate discoveredDate = readDate(row.getCell(dateColumn), formatter);
-            String service = normalize(readText(row.getCell(serviceColumn)));
             return discoveredDate != null
                     && !discoveredDate.isBefore(weekStartDate)
-                    && !discoveredDate.isAfter(weekEndDate)
-                    && ALLOWED_SERVICES.contains(service);
+                    && !discoveredDate.isAfter(weekEndDate);
         });
     }
 

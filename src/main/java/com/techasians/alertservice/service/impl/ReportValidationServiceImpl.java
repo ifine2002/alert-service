@@ -5,6 +5,7 @@ import com.techasians.alertservice.exception.ReportFileValidationException;
 import com.techasians.alertservice.repository.RptExcelSheetDefRepository;
 import com.techasians.alertservice.service.ReportValidationService;
 import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -203,7 +204,19 @@ public class ReportValidationServiceImpl implements ReportValidationService {
         }
         if (warningColumn < 0) {
             warningColumn = 0;
-            for (Row row : sheet) warningColumn = Math.max(warningColumn, row.getLastCellNum());
+            for (Row row : sheet) {
+                for (Cell cell : row) {
+                    CellType type = cell.getCellType();
+                    if (type == CellType.BLANK || type == CellType._NONE) continue;
+                    if (type == CellType.STRING && cell.getStringCellValue().isBlank()) continue;
+                    // Bỏ qua ô trống chỉ có định dạng; giữ cả công thức trả về chuỗi rỗng.
+                    warningColumn = Math.max(warningColumn, cell.getColumnIndex() + 1);
+                }
+            }
+            if (warningColumn >= SpreadsheetVersion.EXCEL2007.getMaxColumns()) {
+                throw new ReportFileValidationException("Sheet " + sheet.getSheetName()
+                        + " không còn cột trống để thêm cột Kết quả sau dữ liệu (đã tới cột XFD).");
+            }
         }
         Cell warningHeader = headerRow.getCell(warningColumn, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
         warningHeader.setCellValue(WARNING_HEADER);

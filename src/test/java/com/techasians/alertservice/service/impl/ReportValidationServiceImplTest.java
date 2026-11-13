@@ -339,6 +339,131 @@ class ReportValidationServiceImplTest {
     }
 
     @Test
+    void ignoresBlankAndStyledCellsAtXfdWhenAddingWarnings() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            sheet.createRow(0).createCell(0).setCellValue("Ngày phát hiện");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("bad date");
+            CellStyle style = book.createCellStyle();
+            style.setBorderBottom(BorderStyle.THIN);
+            row.createCell(16383).setCellStyle(style);
+            sheet.createRow(2).createCell(16383).setCellValue("");
+
+            byte[] errorFile = validate(book, "xlsx", 1010L, WEEK);
+
+            assertNotNull(errorFile);
+            try (XSSFWorkbook result = new XSSFWorkbook(new ByteArrayInputStream(errorFile))) {
+                Sheet annotated = result.getSheet("Bất cập DV");
+                assertEquals("Kết quả", annotated.getRow(0).getCell(1).getStringCellValue());
+                assertTrue(annotated.getRow(1).getCell(1).getStringCellValue().contains("không đúng định dạng"));
+                assertEquals(BorderStyle.THIN, annotated.getRow(1).getCell(16383).getCellStyle().getBorderBottom());
+                assertNull(annotated.getRow(2).getCell(1));
+            }
+        }
+    }
+
+    @Test
+    void acceptsValidDatesWithBlankCellsAtXfd() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            sheet.createRow(0).createCell(0).setCellValue("Ngày phát hiện");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("07/09/2026");
+            row.createCell(16383);
+
+            assertNull(validate(book, "xlsx", 1010L, WEEK));
+        }
+    }
+
+    @Test
+    void preservesEmptyResultFormulasWhenAddingWarnings() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            sheet.createRow(0).createCell(0).setCellValue("Ngày phát hiện");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("bad date");
+            row.createCell(5).setCellFormula("\"\"");
+            book.getCreationHelper().createFormulaEvaluator().evaluateAll();
+
+            byte[] errorFile = validate(book, "xlsx", 1010L, WEEK);
+
+            assertNotNull(errorFile);
+            try (XSSFWorkbook result = new XSSFWorkbook(new ByteArrayInputStream(errorFile))) {
+                Sheet annotated = result.getSheet("Bất cập DV");
+                assertEquals("Kết quả", annotated.getRow(0).getCell(6).getStringCellValue());
+                assertEquals("\"\"", annotated.getRow(1).getCell(5).getCellFormula());
+            }
+        }
+    }
+
+    @Test
+    void canUseXfdForWarningsWhenDataEndsAtXfc() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            sheet.createRow(0).createCell(0).setCellValue("Ngày phát hiện");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("bad date");
+            row.createCell(16382).setCellValue("Dữ liệu cần giữ");
+
+            byte[] errorFile = validate(book, "xlsx", 1010L, WEEK);
+
+            assertNotNull(errorFile);
+            try (XSSFWorkbook result = new XSSFWorkbook(new ByteArrayInputStream(errorFile))) {
+                Sheet annotated = result.getSheet("Bất cập DV");
+                assertEquals("Kết quả", annotated.getRow(0).getCell(16383).getStringCellValue());
+                assertTrue(annotated.getRow(1).getCell(16383).getStringCellValue().contains("không đúng định dạng"));
+                assertEquals("Dữ liệu cần giữ", annotated.getRow(1).getCell(16382).getStringCellValue());
+            }
+        }
+    }
+
+    @Test
+    void reportsNoRoomForWarningColumnWhenXfdContainsData() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            sheet.createRow(0).createCell(0).setCellValue("Ngày phát hiện");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("bad date");
+            row.createCell(16383).setCellValue("Dữ liệu cần giữ");
+
+            ReportFileValidationException failure = assertThrows(ReportFileValidationException.class,
+                    () -> validate(book, "xlsx", 1010L, WEEK));
+
+            assertEquals("Sheet Bất cập DV không còn cột trống để thêm cột Kết quả sau dữ liệu (đã tới cột XFD).",
+                    failure.getMessage());
+        }
+    }
+
+    @Test
+    void reusesExistingWarningColumnWhenXfdContainsData() throws Exception {
+        configureProductIssues();
+        try (XSSFWorkbook book = new XSSFWorkbook()) {
+            Sheet sheet = book.createSheet("Bất cập DV");
+            Row header = sheet.createRow(0);
+            header.createCell(0).setCellValue("Ngày phát hiện");
+            header.createCell(1).setCellValue("Kết quả");
+            Row row = sheet.createRow(1);
+            row.createCell(0).setCellValue("bad date");
+            row.createCell(16383).setCellValue("Dữ liệu cần giữ");
+
+            byte[] errorFile = validate(book, "xlsx", 1010L, WEEK);
+
+            assertNotNull(errorFile);
+            try (XSSFWorkbook result = new XSSFWorkbook(new ByteArrayInputStream(errorFile))) {
+                Sheet annotated = result.getSheet("Bất cập DV");
+                assertTrue(annotated.getRow(1).getCell(1).getStringCellValue().contains("không đúng định dạng"));
+                assertEquals("Dữ liệu cần giữ", annotated.getRow(1).getCell(16383).getStringCellValue());
+            }
+        }
+    }
+
+    @Test
     void copiesPreviousHeaderStylePerSheetWithoutChangingItsFont() throws Exception {
         when(sheets.findByDefinitionIdAndStatusOrderBySortOrderAsc(1010L, 1)).thenReturn(Arrays.asList(
                 new RptExcelSheetDef().setSheetName("Bất cập DV"), new RptExcelSheetDef().setSheetName("Khác")));

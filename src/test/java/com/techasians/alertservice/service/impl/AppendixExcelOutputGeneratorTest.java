@@ -36,7 +36,8 @@ class AppendixExcelOutputGeneratorTest {
                 row(source, 4, 0, "4", "", "SME", "Cached numeric date");
                 row(source, 5, 0, "5", "", "SME", "Cached text date");
                 row(source, 6, 0, "6", "13/5/26", "SME", "Outside week");
-                row(source, 7, 0, "7", "6/5/26", "Other", "Excluded service");
+                row(source, 7, 0, "7", "6/5/26", "Other", "Other service");
+                row(source, 8, 0, "8", "6/5/26", "", "Missing service");
                 CellStyle dateStyle = sourceWorkbook.createCellStyle();
                 dateStyle.setDataFormat(sourceWorkbook.createDataFormat().getFormat("m/d/yy"));
                 double serial = DateUtil.getExcelDate(LocalDate.of(2026, 6, 5), date1904);
@@ -55,13 +56,13 @@ class AppendixExcelOutputGeneratorTest {
                 ReflectionTestUtils.invokeMethod(generator, "copyFilteredAppendixTwo",
                         source, target, targetWorkbook, LocalDate.of(2026, 5, 6));
 
-                assertEquals(5, target.getLastRowNum());
+                assertEquals(7, target.getLastRowNum());
                 for (String included : Arrays.asList("Long year", "Short year at week end",
-                        "Displayed numeric date", "Cached numeric date", "Cached text date")) {
+                        "Displayed numeric date", "Cached numeric date", "Cached text date",
+                        "Other service", "Missing service")) {
                     assertNotNull(findCell(target, included), included);
                 }
                 assertNull(findCell(target, "Outside week"));
-                assertNull(findCell(target, "Excluded service"));
             }
         }
     }
